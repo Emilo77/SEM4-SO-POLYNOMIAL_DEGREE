@@ -1,0 +1,2 @@
+# SEM4-SO-ZADANIE1
+Es
