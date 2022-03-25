@@ -5,18 +5,23 @@ global polynomial_degree:
 ;All_equal
 ;       equal <arr> <length> <result>
 
-%macro equal 3
-        mov eax, 0
-        mov ecx, dword [%2]
-        mov r12, 0
-        lea rbx, [%1] ;może mov zamiast lea?
 
-        %%checkLoop
-
-
+; ZMIENNE
+; ilość segmentów na pojedynczy bigNum
+; ilość wszystkich segmentów do trzymania wszystkich bigNumów (alokacja na stosie)
+; iterator do chodzenia po całych bigNumach
+; iterator do chodzenia wewnątrz pojedynczego bigNuma
+;
 
 ;%endmacro
 
 section .text
 
 polynomial_degree:
+    mov r12, qword rdi ;rdi - ilość wszystkich bignumów
+    div r12, 64
+    inc r12 ;ilość segmentów potrzebna do reprezentacji bignuma
+
+; sprawdzenie, czy wszystkie są równe (i równe 0)
+; odejmowanie bigNumów, wstawienie na odpowiednie miejsca
+
