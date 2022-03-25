@@ -3,4 +3,4 @@ project(Zadanie01 C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(Zadanie01 poly.c example.c check_equals.c)
+add_executable(Zadanie01 polynomial_degree.c example.c test.c)

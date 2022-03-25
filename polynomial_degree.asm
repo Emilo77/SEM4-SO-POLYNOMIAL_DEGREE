@@ -18,16 +18,24 @@ global polynomial_degree:
 section .text
 
 polynomial_degree:
-    mov r12, qword rdi ;rdi - ilość wszystkich bignumów
-    div r12, 64
-    inc r12 ;ilość segmentów potrzebna do reprezentacji bignuma
+    mov eax, 50
+    ret
+;    mov r12, qword rdi ; rdi - ilość wszystkich bignumów
+;    div r12, 64
+;    inc r12 ; ilość segmentów potrzebna do reprezentacji bignuma
+;
+;    mov rcx, r12
+;    mul rcx, rdi ; ustawienie countera na ilość wszystkich segmentów
+;    mov r13, rcx ; ilość wszystkich segmentów
+;
+;push_stack_loop:
+;    push ... ;pushowanie czegoś
+;    loop push_stack_loop
 
-    mov rcx, r12
-    mul rcx, rdi ;ustawienie countera na ilość wszystkich segmentów
 
-push_stack_loop:
-    push ... ;pushowanie czegoś
-    loop push_stack_loop
+
+
+
 
 
 
