@@ -1,12 +1,19 @@
 global polynomial_degree:
 
-
-
 ;Define macro
 ;Three arguments
 ;All_equal
 ;       equal <arr> <length> <result>
 ;
+
+;%macro fill     3
+;    xor rbx, rbx
+;    cmp [%1], 0
+;    je %%start:
+;    not rbx
+;    jmp %%start:
+;
+;%%start:
 
 
 ;%endmacro
@@ -18,22 +25,32 @@ global polynomial_degree:
 ; iterator do chodzenia wewnątrz pojedynczego bigNuma
 
 section .text
-;
+
+
 polynomial_degree:
+    push rbx
+    push rbp
+    push r12
+    push r13
+    push r14
+    push r15
+
     mov rax, rsi
     add rax, 32  ; najgorszy przypadek to 2^32, -2^32, 2^32, ...
     shr rax, 6 ; dzielenie przez 64, otrzymanie podłogi z ilości segmentów
     inc rax
     mov r11, rax ; r11 - ilość segmentów potrzebna do reprezentacji bignuma r11_max = 2^26
+    mov r12, rsi ; r12 - aktualna ilość zmiennych na stosie
+    dec r12 ; r12 = n - 1
+
     mul rsi
 ;    dec rax ; odjęcie 1, bo będzie co najwyżej n-1 bignumów, ODKOMENTOWAĆ JEŚLI ZADZIAŁA
-    mov r12, rax ; r12 - ilość wszystkich segmentów do iteracji, r12_max = 2^58
 
     mov r14, rsi ; r14 - iterator zewnętrzny do chodzenia po bignumach
     mov r15, r11 ; r15 - iterator wewnętrzny do chodzenia po segmnetach wewnątrz bignuma
 
 
-    shl rax, 3 ; ilość wszystkich bitów, o które należy przesunąć wskaźnik stosu, 8 * r12
+    shl rax, 3 ; ilość wszystkich bitów, o które należy przesunąć wskaźnik stosu
     mov r10, rax ; r10 - zarezerwowane miejsce na stos
     sub rsp, rax
 
@@ -69,7 +86,7 @@ not_equal:
 
 loop_conv_32:
     mov rcx, r11 ; counter do chodzenia po wewnętrznych segmentach pojedynczego bigNuma
-    sub rcx, 1
+    dec rcx
 
     mov rax, r14 ;
     mul r11 ; ilość segmentów dla jednego bigNuma
@@ -77,44 +94,71 @@ loop_conv_32:
 
     movsxd rax, dword [rdi + 4 * r14]
     mov [rsp + 8 * r13], rax; wstawienie
-;    cmp rcx, 0
-;    jmp dont_fill
 
-;    xor rbx, rbx
-;    cmp rax, 0
-;    jge fill_rest
-;    not rbx
-;    jmp fill_rest
-;
-;fill_rest:
-;    jmp finish
-;    mov r8, rcx
-;    add r8, r13
-;    mov [rsp + 8 * r8], rbx
-;    loop fill_rest
+    cmp rcx, 0
+    je next_bignum:
 
-;dont_fill:
+    xor r8, r8 ; wyzerowanie rejestru r8
+    cmp rax, 0
+    jge .fill
+    not r8 ; wypełnienie rejestru r8 jedynkami (jeśli rax będzie ujemny)
 
+    .fill:
+        mov rbx, r13
+        add rbx, rcx
+        mov [rsp + 8 * rbx], r8
+        loop fill
+
+next_bignum:
     inc r14
     cmp r14, rsi
     jne loop_conv_32
 
-
+main_loop:
 
 substract:
-    mov r14, 0 ; counter po zewnętrznych segmentach wszsystkich bigNumów
-    mov r15, 0 ; counter po wewnętrznych segmentach pojednynczego bigNuma
-
-
-;    mov rax, qword [rsp + 8 * (r14 + r15)]
-;    sub rax, qword [rsp + 8 * (r14 + r13)]
 
 
 
+    xor r14, r14 ; wyzerowanie countera do iteracji po wewnętrznych segmentach pojedynczego bigNuma
+check_equal_all:
+
+check_equal_segment:
+    mov rcx, r12 ; zapisanie w counterze ilości liczb do porównania
+
+
+;    mov rax, 0 ; [rsp + ...]
+;    cmp rax, 0 ; [rsp + ... + przeskok]
+    je next:
+    jne equal_break:
+
+equal_break:
+    dec r12
+    cmp r12, 1
+    je set_value
+    jmp main_loop
+
+next:
+    inc rcx
+    cmp rcx, rsi ; jeżeli counter dojdzie do liczby bigNumów, robimy kolejną iterację
+    jne check_equal_segment:
+
+
+
+
+
+
+set_value:
+    mov rax, rsi
+    sub rax, r12
 finish:
-;    mov rax, qword [rsp + 0]
-    mov rax, [rsp + 16]
     add rsp, r10
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
     ret
 
 ; sprawdzenie, czy wszystkie są równe (i równe 0)
