@@ -1,5 +1,4 @@
 //#include <assert.h>
-//#include "poly.c"
 //#include <stdio.h>
 //#include <stdlib.h>
 //#include <stdbool.h>
