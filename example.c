@@ -14,7 +14,8 @@ int polynomial_degree(int const *y, size_t n);
 
 void fillArr(int *arr, size_t n, int k) {
     for (int i = 0; i < n; i++) {
-        arr[i] = -i - 2;
+        arr[i] = -i;
+        arr[3] = 5;
     }
 }
 
@@ -27,8 +28,8 @@ int main() {
     int res = polynomial_degree(arr, n);
     printf("res = %d\n", res);
     free(arr);
-
-
+//
+//
 //    test(1, 0, { 777 });
 //    test(2, 0, {5, 5});
 //    test(1, -1, {0});
