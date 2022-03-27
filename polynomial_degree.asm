@@ -128,59 +128,29 @@ main_loop:
             jne sub_all_bignums
 
 
-    xor rcx, rcx ; wyzerowanie countera do iteracji po wewnętrznych segmentach pojedynczego bigNuma
     check_all_zeros:
+        xor rcx, rcx ; wyzerowanie countera do iteracji po wewnętrznych segmentach pojedynczego bigNuma
         mov rax, SEGMENTS_COUNT
         mul actual_count
         check_zero_loop:
             cmp qword [rsp + 8 * rcx], 0
             jne not_zero
             inc rcx
-            jmp check_zero_loop
+            cmp rax, rcx
+            jne check_zero_loop
+            je set_value
 
         not_zero:
-
-
-
-
-;    check_equal_all:
-;
-;        xor rcx, rcx ; wyzerowanie countera
-;        check_equal_segment:
-;            mov rax, rcx
-;            mul SEGMENTS_COUNT
-;            add rax, r14
-;            mov r8, rax
-;            mov r15,  [rsp + 8 * r8] ; pierwszy segment do porównania
-;
-;            add r8, SEGMENTS_COUNT ; dodanie "skoku"
-;            cmp r15, [rsp + 8 * r8]
-;            ; porównanie k-tego segmentu n-tego bigNuma z k-tym segmentem n+1 bigNuma
-;
-;            je next
-;            jne not_equal_break
-;
-;
-;        next:
-;            inc rcx
-;            cmp rcx, actual_count ; jeżeli counter dojdzie do liczby aktualnych bigNumów, robimy kolejną iterację
-;            jne check_equal_segment
-;            inc r14
-;            cmp r14, SEGMENTS_COUNT ; sprawdzenie, czy sprawdziliśmy już każdy segment pojedynczego bigNuma
-;            jne check_equal_all
-;            jmp set_value
-;
-;        not_equal_break:
-;            dec r12
-;            cmp r12, 1
-;            je set_value
-;            jmp main_loop
+            dec actual_count
+            cmp actual_count, 0
+            jne main_loop
 
 set_value:
     mov rax, BIGNUMS_COUNT
-    sub rax, r12
+    sub rax, actual_count
+    dec rax
+
 finish:
-    mov rax, [rsp + 8 * 18]
     add rsp, r10
     pop r15
     pop r14
