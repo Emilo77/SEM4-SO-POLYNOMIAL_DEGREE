@@ -14,18 +14,34 @@ int polynomial_degree(int const *y, size_t n);
 
 void fillArr(int *arr, size_t n, int k) {
     for (int i = 0; i < n; i++) {
-        arr[i] = -i;
-        arr[3] = 5;
+        arr[i] = i;
     }
+    for (int i = 0; i < 20; i++) {
+        arr[i] = 2 * arr[i - 1] + 1;
+    }
+    arr[0] = 2;
+}
+
+void printArr(int *arr, size_t n) {
+    for(int i = 0; i < 10; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    for(int i = 0; i < 9; i++) {
+        printf("%d ", arr[i] - arr[i + 1]);
+    }
+    printf("\n");
 }
 
 
 int main() {
 
-    size_t n = 50;
+    size_t n = 100;
     int *arr = malloc(sizeof(int) * n);
     fillArr(arr, n, 0);
     int res = polynomial_degree(arr, n);
+
+    printArr(arr, n);
     printf("res = %d\n", res);
     free(arr);
 //

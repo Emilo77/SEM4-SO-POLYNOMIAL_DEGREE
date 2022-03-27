@@ -31,10 +31,6 @@ polynomial_degree:
     mul rsi
 ;    dec rax ; odjęcie 1, bo będzie co najwyżej n-1 bignumów, ODKOMENTOWAĆ JEŚLI ZADZIAŁA
 
-    mov r14, BIGNUMS_COUNT ; r14 - iterator zewnętrzny do chodzenia po bignumach
-    mov r15, SEGMENTS_COUNT ; r15 - iterator wewnętrzny do chodzenia po segmnetach wewnątrz bignuma
-
-
     shl rax, 3 ; ilość wszystkich bitów, o które należy przesunąć wskaźnik stosu
     mov r10, rax ; r10 - zarezerwowane miejsce na stos
     sub rsp, rax
@@ -100,40 +96,52 @@ next_bignum:
 
 
 
-;main_loop:
-;
-;    xor rcx, rcx ; wyzerowanie countera do iteracji po bigNumach
-;    substract_all:
-;
-;        xor r14, r14 ;wyzerowanie countera do iteracji po wewnętrznych segmentach bigNuma
-;        mov rax, rcx
-;        mul SEGMENTS_COUNT
-;        substract_single_segments:
-;            add rax, r14
-;            add rax, SEGMENTS_COUNT
-;            mov r15, [rsp + 8 * rax] ; drugi segment do odejmowania
-;            sub rax, SEGMENTS_COUNT ; dodanie "skoku"
-;
-;            cmp r14, 0
-;            je first_sub
-;
-;            sbb [rsp + 8 * rax], r15
-;            jmp substract_single_segments_end
-;
-;            first_sub:
-;                sbb [rsp + 8 * rax], r15
-;
-;            substract_single_segments_end:
-;                inc r14
-;                cmp r14, SEGMENTS_COUNT
-;                jne substract_single_segments
-;                inc rcx
-;                cmp rcx, actual_count ; sprawdzenie, czy sprawdziliśmy już każdy segment pojedynczego bigNuma
-;                jne substract_all
-;
-;    jmp finish
-;
-;    xor rcx, rcx ; wyzerowanie countera do iteracji po wewnętrznych segmentach pojedynczego bigNuma
+main_loop:
+
+    xor rcx, rcx ; wyzerowanie countera do chodzenia po segmentach zewnętrznych
+    sub_all_bignums:
+
+        xor r14, r14 ; wyzerowanie countera do chodzenia po wewnętrznych segmentach
+        sub_single_bignums:
+
+        mov rax, rcx
+        mul SEGMENTS_COUNT
+        add rax, r14
+        add rax, SEGMENTS_COUNT
+        mov r15, [rsp + 8 * rax]
+        sub rax, SEGMENTS_COUNT
+
+        cmp r14, 0
+        je first_sub
+            sub [rsp + 8 * rax], r15
+            jmp sub_single_end
+
+        first_sub:
+            sbb [rsp + 8 * rax], r15
+
+        sub_single_end:
+            inc r14
+            cmp r14, SEGMENTS_COUNT
+            jne sub_single_bignums
+            inc rcx
+            cmp rcx, actual_count
+            jne sub_all_bignums
+
+
+    xor rcx, rcx ; wyzerowanie countera do iteracji po wewnętrznych segmentach pojedynczego bigNuma
+    check_all_zeros:
+        mov rax, SEGMENTS_COUNT
+        mul actual_count
+        check_zero_loop:
+            cmp qword [rsp + 8 * rcx], 0
+            jne not_zero
+            inc rcx
+            jmp check_zero_loop
+
+        not_zero:
+
+
+
 
 ;    check_equal_all:
 ;
@@ -172,6 +180,7 @@ set_value:
     mov rax, BIGNUMS_COUNT
     sub rax, r12
 finish:
+    mov rax, [rsp + 8 * 18]
     add rsp, r10
     pop r15
     pop r14
