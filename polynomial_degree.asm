@@ -2,6 +2,9 @@ global polynomial_degree:
 
 section .text
 
+; Kamil Bugała (kb417522)
+; SO gr. 6 (p. Michał Smolarek)
+
 ; OGÓLNA KONWENCJA:
 ; Liczby trzymamy w wielu segmentach na stosie (będę określał je jako bigNumy)
 ; Wykonujemy operacje :
@@ -30,8 +33,8 @@ polynomial_degree:  ;
 	push   r14
 	push   r15
 
-; Opis: wylicza ilość, jaką należy przeznaczyć na stos, w zależności od wielkości danych
-;       początkowych, ustawia zmienne
+; Opis: wylicza ilość, jaką należy przeznaczyć na stos,
+;       w zależności od wielkości danych początkowych, ustawia zmienne
 ; Rejestry w etykiecie:
 ; rax - chwilowa zmienna do obliczeń
 ; r8 - liczba segmentów pojedynczego bigNuma, zmniejszona o 1
@@ -57,12 +60,12 @@ counting_limits:
 	; liczba bajtów na stosie jest wielokrotnością 8, więc konwencja się zgadza
 
 	mov    r8, r11
-	dec 	 r8   ; ilość segmentów bigNuma, nie licząc pierwszego
-	mov 	 rax, r11
-	mul 	 rsi
-	mov 	 r13, rax   ; ilość segmentów wszystkich bigNumów
+	dec    r8   ; ilość segmentów bigNuma, nie licząc pierwszego
+	mov    rax, r11
+	mul    rsi
+	mov    r13, rax   ; ilość segmentów wszystkich bigNumów
 	xor    r14, r14   ; wyzerowanie counterów
-	xor		 r15, r15
+	xor    r15, r15
 	xor    rcx, rcx   ; główny counter do iteracji po segmentach na stosie
 
 ; Opis: Kopiuje elementy z podanej nam pamięci rdi, zmienia wielkość na 8-bajtowe
@@ -76,28 +79,31 @@ counting_limits:
 ; r14, r15, rcx - countery
 ; r9 - rejestr wypełniony samymi zerami lub samymi jedynkami
 put_elements_on_stack_loop: ; przenoszenie liczb z danej nam tablicy na stos
-	movsxd rax, dword [rdi + 4 * r15] ; wpisanie liczby 32-bitowej do 64-bit. segmentu
-	mov 	 [rsp + 8 * rcx], rax ; wstawienie rozszerzonej liczby na stos
-	inc 	 rcx
+	movsxd  rax, dword [rdi + 4 * r15] ; wpisanie liczby 32-bitowej do 64-bit. segmentu
+	mov    [rsp + 8 * rcx], rax ; wstawienie rozszerzonej liczby na stos
+	inc    rcx
 
-	inc 	 r15
-	xor 	 r14, r14
-	cmp 	 r11, 1  ; jeżeli bigNum ma tylko jeden segment, wypełniamy stos tylko podanymi liczbami
-	je 		 .iter_end
-.put_elements_on_stack_inner_loop: ; wpp. wypełniamy resztę segmentów bigNuma, w zależności od znaku liczby
-	xor 	 r9, r9	  ; jeżeli w 1. segmencie wpisaliśmy dodatnią, to resztę segmentów wypełniamy zerami
-	cmp 	 rax, 0	  ; sprawdzamy znak
-	jge 	 .fill
-	not 	 r9	  ;	jeżeli jest ujemna, to wypełniamy jedynkami
+	inc    r15
+	xor    r14, r14
+	cmp    r11, 1  ; jeżeli bigNum ma tylko jeden segment, wypełniamy stos tylko podanymi liczbami
+	je     .iter_end
+.put_elements_on_stack_inner_loop:
+	; wpp. wypełniamy resztę segmentów bigNuma, w zależności od znaku liczby
+	xor    r9, r9	  ; jeżeli w 1. segmencie wpisaliśmy dodatnią, to resztę segmentów wypełniamy zerami
+	cmp    rax, 0	  ; sprawdzamy znak
+	jge    .fill
+	not    r9	  ;	jeżeli jest ujemna, to wypełniamy jedynkami
 .fill:		  ; wykonujemy to, aby reprezentacje binarne liczb się zgadzały
-	mov 	 [rsp + 8 * rcx], r9  ; wypełniamy poboczne segmenty
-	inc 	 rcx
-	inc 	 r14
-	cmp 	 r14, r8
-	jl 	 	 .fill	 ; pętlimy się do momentu, aż wszystkie segmenty bigNuma zostaną wypełnione
+	mov    [rsp + 8 * rcx], r9  ; wypełniamy poboczne segmenty
+	inc    rcx
+	inc    r14
+	cmp    r14, r8
+	jl     .fill	 ; pętlimy się do momentu, aż wszystkie segmenty bigNuma zostaną wypełnione
 .iter_end:
-	cmp 	 rcx, r13	; jeżeli pozostały jakieś segmenty, powtarzamy czynność dla następnego bigNuma
-	jl 		 put_elements_on_stack_loop	; powtarzamy czynność, aż wszystkie bigNumy zostaną umieszczone i wypełnione na stosie
+	cmp    rcx, r13	; jeżeli pozostały jakieś segmenty,
+	; powtarzamy czynność dla następnego bigNuma
+	jl     put_elements_on_stack_loop	; powtarzamy czynność,
+	; aż wszystkie bigNumy zostaną umieszczone i wypełnione na stosie
 
 ; Główna pętla do operacji porównywania i obliczania różnicy bigNumów
 main_loop:
@@ -111,20 +117,21 @@ main_loop:
 ; rsp - wskaźnik na wierzch stosu
 ; rcx - countery
 check_all_zeros: ; sprawdzenie, czy wszystkie aktualne liczby są zerami
-	mov		 rax, r11
+	mov    rax, r11
 	mul    r12
-	mov    rcx, rax ; ustawienie rejestru rcx na liczbę segmentów aktualnych bigNumów
+	mov    rcx, rax ; ustawienie rcx na liczbę segmentów aktualnych bigNumów
 .check_zero_loop:
 	cmp    qword [rsp + 8 * (rcx - 1)], 0 ; porównanie każdego segmentu osobno
 	jne    .not_equal_zero
 	loop   .check_zero_loop ; wykonanie porównania dla każdego segmentu
 .equal:
 	jmp    set_value ; jeżeli wszystkie są równe, wychdzimy z głównej pętli
-.not_equal_zero: ; jeżeli nie wszystkie liczby będą równe 0, wykonujemy różnice na licbach
+.not_equal_zero: ; jeśli nie wszystkie są równe 0, wykonujemy dalej różnice na bigNumach
 	dec    r12
 	cmp    r12, 0
 	jne    substract
-	jmp    set_value ; jeżeli nie pozostały nam żadne liczby, kończymy z największym możliwym stopniem wielomianu
+	jmp    set_value ; jeżeli nie pozostały nam żadne liczby,
+	; kończymy z największym możliwym stopniem wielomianu
 
 ; Opis: Odejmuje sąsiednie bigNumy.
 ;       z [a, b, c, d, e] otrzymujemy [a - b, b - c, c - d, d - e]
@@ -156,7 +163,8 @@ substract:  ; zmiana k liczb na k-1 liczb, będących różnicami sąsiednich li
 	je     .next_segment_sub
 	mov    rax, qword [r15 + rcx]
 	popf
-	sbb    qword [r14 + rcx], rax   ; ważną rzeczą jest tutaj przeniesienie bitu z poprzedniego segmentu, jeżeli wystąpiło przepełnienie
+	sbb    qword [r14 + rcx], rax   ; ważną rzeczą jest tutaj przeniesienie bitu
+	; z poprzedniego segmentu, jeżeli wystąpiło przepełnienie
 	pushf	; musimy także umieszczać flagi na stosie
 	jmp    .other_segments ; ponieważ niektóre instrukcje nadpisałyby flagę
 .next_segment_sub:  ; wykonujemy to dla pozostałych segmentów pojedynczego bigNuma
@@ -164,7 +172,8 @@ substract:  ; zmiana k liczb na k-1 liczb, będących różnicami sąsiednich li
 	inc    r13
 	cmp    r13, r12
 	jne    .next_bignum_sub
-	jmp    main_loop ; jeżeli skończymy operacje na każdej parze liczb, powtarzamy porówannie tablicy z zerami
+	jmp    main_loop ; jeżeli skończymy operacje na każdej parze liczb,
+	; powtarzamy porówannie tablicy z zerami
 .next_bignum_sub:
 	add    r14, r9
 	add    r15, r9
