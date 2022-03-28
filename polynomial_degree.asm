@@ -1,11 +1,5 @@
 global polynomial_degree:
 
-; ZMIENNE
-; ilość segmentów na pojedynczy bigNum
-; ilość wszystkich bajtów do trzymania wszystkich bigNumów (alokacja na stosie)
-; iterator do chodzenia po całych bigNumach
-; iterator do chodzenia wewnątrz pojedynczego bigNuma
-
 %define SEGMENTS_COUNT r11
 %define BIGNUMS_COUNT rsi
 %define actual_count r12
@@ -13,7 +7,6 @@ global polynomial_degree:
 section .text
 
 polynomial_degree:
-    push rbp
     push r12
     push r13
     push r14
@@ -91,7 +84,7 @@ substract:
     add r15, SEGMENTS_COUNT
 
     cmp SEGMENTS_COUNT, 1
-    je without_carry_loop
+;    je without_carry_loop
     jmp with_carry_loop
 
 without_carry_loop:
@@ -103,28 +96,24 @@ without_carry_loop:
     jne without_carry_loop
     jmp main_loop
 
+
 with_carry_loop:
+
 first_segments:
-    mov r9, [rsp + 8 * r15]
-    sub [rsp + 8 * r14], r9
-    pushf
-
+    mov r13, SEGMENTS_COUNT
+    dec r13
+    mov rax, qword [rsp + 8 * r15]
+    sub qword [rsp + 8 * r14], rax
     inc r14
     inc r15
-    mov r13, 1
+
 other_segments:
-    mov r9, [rsp + 8 * r15]
-    popf
-    sbb [rsp + 8 * r14], r9
-    pushf
-
+    mov rax, qword [rsp + 8 * r15]
+    sbb qword [rsp + 8 * r14], rax
     inc r14
     inc r15
-    inc r13
-    cmp r13, SEGMENTS_COUNT
-    jne other_segments
-    popf
-;    clc
+    dec r13
+    jz other_segments
     cmp r14, rcx
     jl first_segments
     jmp main_loop
@@ -136,23 +125,10 @@ set_value:
     dec rax
 
 finish:
-;    mov rax, [rsp + 8 * 5]
     add rsp, r10
     pop r15
     pop r14
     pop r13
     pop r12
-    pop rbp
     ret
-
-;finish_special:
-;    mov rax, [rsp + 8 * r14]
-;    add rsp, r10
-;    pop r15
-;    pop r14
-;    pop r13
-;    pop r12
-;    pop rbp
-;    ret
-
 ; odejmowanie bigNumów, wstawienie na odpowiednie miejsca
