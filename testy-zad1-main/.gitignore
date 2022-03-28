@@ -1,0 +1,8 @@
+*
+!*.c
+!*.asm
+!test.sh
+!README.md
+!LICENSE
+!.gitignore
+
