@@ -1,163 +1,158 @@
-global polynomial_degree
+global polynomial_degree:
 
-%define BIGNUMS_COUNT rsi
+; ZMIENNE
+; ilość segmentów na pojedynczy bigNum
+; ilość wszystkich bajtów do trzymania wszystkich bigNumów (alokacja na stosie)
+; iterator do chodzenia po całych bigNumach
+; iterator do chodzenia wewnątrz pojedynczego bigNuma
+
 %define SEGMENTS_COUNT r11
+%define BIGNUMS_COUNT rsi
 %define actual_count r12
-%define STACK_DATA r10
 
 section .text
 
 polynomial_degree:
+    push rbp
     push r12
     push r13
     push r14
     push r15
 
     mov rax, BIGNUMS_COUNT
-    add rax, 32                         ; najgorszy przypadek to 2^32, -2^32, 2^32, ...
-    shr rax, 6                          ; dzielenie przez 64, otrzymanie podłogi z ilości segmentów
+    add rax, 32  ; najgorszy przypadek to 2^32, -2^32, 2^32, ...
+    shr rax, 6 ; dzielenie przez 64, otrzymanie podłogi z ilości segmentów
     inc rax
-    mov SEGMENTS_COUNT, rax             ; r11 - ilość segmentów potrzebna do reprezentacji bignuma r11_max = 2^26
-    mov actual_count, BIGNUMS_COUNT     ; r12 - aktualna ilość zmiennych na stosie
-    mul BIGNUMS_COUNT
+    mov r11, rax ; r11 - ilość segmentów potrzebna do reprezentacji bignuma r11_max = 2^26
+    mov actual_count, BIGNUMS_COUNT ; r12 - aktualna ilość zmiennych na stosie
 
-    shl rax, 3                          ; ilość wszystkich bitów, o które należy przesunąć wskaźnik stosu
-    mov STACK_DATA, rax                 ; r10 - zarezerwowane miejsce na stos
-    sub rsp, STACK_DATA
+    mul rsi
+;    dec rax ; odjęcie 1, bo będzie co najwyżej n-1 bignumów, ODKOMENTOWAĆ JEŚLI ZADZIAŁA
 
+    shl rax, 3 ; ilość wszystkich bitów, o które należy przesunąć wskaźnik stosu
+    mov r10, rax ; r10 - zarezerwowane miejsce na stos
+    sub rsp, rax
 
-    xor rcx, rcx                        ; counter do wszystkich segmentów na stosie
-    xor r15, r15
-    mov r8, SEGMENTS_COUNT
-    dec r8
-    mov rax, SEGMENTS_COUNT
-    mul BIGNUMS_COUNT
-    mov r13, rax
-put_elements_on_stack_loop:             ; przenoszenie intów z danej nam tablicy na stos
-    movsxd rax, dword [rdi + 4 * r15]   ; zapisanie intów do segmentów 8-bajtowych
-    mov [rsp + 8 * rcx], rax            ; zapisanie pierwszych segmentów bigNumów na miejsca na stosie
-    inc rcx
+loop_conv_32:
+    mov rcx, r11 ; counter do chodzenia po wewnętrznych segmentach pojedynczego bigNuma
+    dec rcx
 
-    inc r15
-    xor r14, r14
-put_elements_on_stack_inner_loop:
-    xor r9, r9                          ;
+    mov rax, r14 ;
+    mul SEGMENTS_COUNT ; ilość segmentów dla jednego bigNuma
+    mov r13, rax ; ustawienie r13 na iloczyn r14 i r15
+
+    movsxd rax, dword [rdi + 4 * r14]
+    mov [rsp + 8 * r13], rax; wstawienie
+
+    cmp rcx, 0
+    je next_bignum
+    xor r8, r8 ; wyzerowanie rejestru r8
     cmp rax, 0
     jge fill
-    not r9
+    not r8 ; wypełnienie rejestru r8 jedynkami (jeśli rax będzie ujemny)
 fill:
-    mov [rsp + 8 * rcx], r9
-    inc rcx
+    mov r9, r13
+    add r9, rcx
+    mov [rsp + 8 * r9], r8
+    loop fill
+next_bignum:
     inc r14
-    cmp r14, r8
-    jl fill
-    cmp rcx, r13
-    jl put_elements_on_stack_loop
+    cmp r14, BIGNUMS_COUNT
+    jne loop_conv_32
 
 main_loop:
 
-    mov rax, actual_count
-    mul SEGMENTS_COUNT
+
+check_all_zeros:
+    mov rax, SEGMENTS_COUNT
+    mul actual_count
     mov rcx, rax
-check_if_all_zeros:
-    cmp qword [rsp + 8 * (rcx - 1)], 0
-    jne not_equal
-    loop check_if_all_zeros
+check_zero_loop:
+    cmp qword [rsp + (rcx - 1)], 0
+    jne not_equal_zero
+    loop check_zero_loop
 equal:
-    jmp set_final_value
-not_equal:
+    jmp set_value
+not_equal_zero:
     dec actual_count
     cmp actual_count, 0
-    jne substract_all
-    jmp set_final_value
-
-substract_all:
-    mov rcx, SEGMENTS_COUNT
+    jne substract
+    jmp set_value
 
 
-;substract_all:
-;
-;    xor rcx, rcx
-;    xor r14, r14
-;    xor r15, r15
-;
-;    substract_outer_loop:
-;    xor r14, r14
-;    substract_inner_loop:
-;        add rcx, SEGMENTS_COUNT
-;        mov r9, [rsp + 8 * rcx]
-;        sub rcx, SEGMENTS_COUNT
-;
-;        cmp r14, 0
-;        jne other_segment
-;
-;        first_segment:
-;            sub [rsp + 8 * rcx], r9
-;            pushf
-;            inc rcx
-;            jmp next_iter
-;
-;        other_segment:
-;             popf
-;             sbb [rsp + 8 * rcx], r9
-;             pushf
-;             inc rcx
-;
-;        next_iter:
-;            inc r14
-;            cmp r14, SEGMENTS_COUNT
-;            jne substract_inner_loop
-;            popf
-;            inc r15
-;            cmp r15, actual_count
-;            jne substract_outer_loop
-;            jmp main_loop
+substract:
+    mov rax, actual_count
+    inc rax
+    mul SEGMENTS_COUNT
+    mov rcx, rax
+    xor r13, r13
+    xor r14, r14
+    xor r15, r15
+    add r15, SEGMENTS_COUNT
+
+    cmp SEGMENTS_COUNT, 1
+    je without_carry_loop
+    jmp with_carry_loop
+
+without_carry_loop:
+    mov r9, [rsp + 8 * r15]
+    sub [rsp + 8 * r14], r9
+    inc r14
+    inc r15
+    cmp r14, rcx
+    jne without_carry_loop
+    jmp main_loop
+
+with_carry_loop:
+first_segments:
+    mov r9, [rsp + 8 * r15]
+    sub [rsp + 8 * r14], r9
+    pushf
+
+    inc r14
+    inc r15
+    mov r13, 1
+other_segments:
+    mov r9, [rsp + 8 * r15]
+    popf
+    sbb [rsp + 8 * r14], r9
+    pushf
+
+    inc r14
+    inc r15
+    inc r13
+    cmp r13, SEGMENTS_COUNT
+    jne other_segments
+    popf
+;    clc
+    cmp r14, rcx
+    jl first_segments
+    jmp main_loop
 
 
-
-;    substract_bignums_loop:
-;
-;        xor r14, r14
-;    substract_bignums_inner_loop:
-;        add rcx, SEGMENTS_COUNT
-;        mov r8, [rsp + 8 * rcx]
-;        sub rcx, SEGMENTS_COUNT
-;
-;        cmp r14, 0
-;        je first_segment
-;
-;    first_segment:
-;        sub [rsp + 8 * rcx], r8
-;        pushf
-;        jmp step
-;
-;    other_segment:
-;        popf
-;        sbb [rsp + 8 * rcx], r8
-;        pushf
-;
-;    step:
-;        inc rcx
-;        inc r14
-;        cmp r14, SEGMENTS_COUNT
-;        je substract_bignums_inner_loop
-;        popf
-;        inc r15
-;        cmp r15, actual_count
-;        jne substract_bignums_loop
-;        jmp end_of_function
-
-set_final_value:
+set_value:
     mov rax, BIGNUMS_COUNT
     sub rax, actual_count
     dec rax
 
-end_of_function:
-    add rsp, STACK_DATA
+finish:
+;    mov rax, [rsp + 8 * 5]
+    add rsp, r10
     pop r15
     pop r14
     pop r13
     pop r12
+    pop rbp
     ret
 
+;finish_special:
+;    mov rax, [rsp + 8 * r14]
+;    add rsp, r10
+;    pop r15
+;    pop r14
+;    pop r13
+;    pop r12
+;    pop rbp
+;    ret
 
+; odejmowanie bigNumów, wstawienie na odpowiednie miejsca
