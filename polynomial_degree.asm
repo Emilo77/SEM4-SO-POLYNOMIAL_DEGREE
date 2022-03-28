@@ -1,4 +1,4 @@
-global polynomial_degree:
+global polynomial_degree
 
 section .text
 
