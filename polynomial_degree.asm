@@ -1,8 +1,12 @@
 global polynomial_degree:
 
+SYS_EXIT equ 60
+
 %define SEGMENTS_COUNT r11
 %define BIGNUMS_COUNT rsi
 %define actual_count r12
+
+section .text
 
 ; Ogólna konwencja:
 ; Liczby trzymamy w wielu segmentach na stosie.
@@ -14,13 +18,12 @@ global polynomial_degree:
 ; aż do otrzymania wielomianu stałego.
 
 polynomial_degree:                              ; wstawienie "calee saved" rejestrów na stos
-    push rbx                                    ; aby potem przywrócić ich wartość
-    push rbp
-    push r12
+    push r12                                    ; aby potem przywrócić ich wartość
     push r13
     push r14
     push r15
 
+counting_limits:
     mov rax, BIGNUMS_COUNT
     add rax, 32                                 ; uwzględnienie najgorszego przypadku
     shr rax, 6                                  ; dzielenie przez 64, otrzymanie podłogi z ilości segmentów
@@ -32,6 +35,7 @@ polynomial_degree:                              ; wstawienie "calee saved" rejes
     mov r10, rax
     sub rsp, rax                                ; zarezerwowanie miejsce na stos, trzymanie miejsca w rejestrze r10
 
+    xor r14, r14
 loop_conv_32:
     mov rcx, r11                                ; counter do chodzenia po wewnętrznych segmentach pojedynczego bigNuma
     dec rcx
@@ -44,17 +48,17 @@ loop_conv_32:
     mov [rsp + 8 * r13], rax                    ; wstawienie rozszerzonej liczby na stos
 
     cmp rcx, 0                                  ; sprawdzenie, czy liczba składa się tylko z jednego segmentu
-    je next_bignum                              ; jeżeli składa się z jednego, to nie musimy uzupełniać segmentów
+    je .next_bignum                              ; jeżeli składa się z jednego, to nie musimy uzupełniać segmentów
     xor r8, r8 ; wyzerowanie rejestru r8
     cmp rax, 0                                  ; jeżeli liczba, którą wstawiliśmy, jest dodatnia, musimy uzupełnić jej resztę segmentów
-    jge fill                                    ; w zależności od jej znaku, uzupełniamy ją samymi 0 lub samymi 1, aby zgadzała się binarnie
+    jge .fill                                    ; w zależności od jej znaku, uzupełniamy ją samymi 0 lub samymi 1, aby zgadzała się binarnie
     not r8
-fill:
+.fill:
     mov r9, r13                                 ; wypełnienie pozostałych segmentów
     add r9, rcx
     mov [rsp + 8 * r9], r8
-    loop fill
-next_bignum:                                    ; przejście do kolejnej liczby
+    loop .fill
+.next_bignum:                                    ; przejście do kolejnej liczby
     inc r14
     cmp r14, BIGNUMS_COUNT                      ; pętlimy się dla każdej liczby w tablicy
     jne loop_conv_32
@@ -65,13 +69,13 @@ check_all_zeros:                                ; sprawdzenie, czy wszystkie akt
     mov rax, SEGMENTS_COUNT
     mul actual_count
     mov rcx, rax                                ; ustawienie rejestru rcx na liczbę wszystkich segmentów na stosie
-check_zero_loop:
+.check_zero_loop:
     cmp qword [rsp + 8 * (rcx - 1)], 0
-    jne not_equal_zero
-    loop check_zero_loop                        ; wykonanie porównania dla każdego segmentu
-equal:
+    jne .not_equal_zero
+    loop .check_zero_loop                        ; wykonanie porównania dla każdego segmentu
+.equal:
     jmp set_value                               ; jeżeli wszystkie są równe, wychdzimy z głównej pętli
-not_equal_zero:                                 ; jeżeli nie wszystkie liczby będą równe 0, wykonujemy różnice na licbach
+.not_equal_zero:                                 ; jeżeli nie wszystkie liczby będą równe 0, wykonujemy różnice na licbach
     dec actual_count
     cmp actual_count, 0
     jne substract
@@ -86,31 +90,31 @@ substract:                                      ; zmiana k liczb na k-1 liczb, b
     mov r14, rsp                                ; pointer na pierwszą liczbę
     lea r15, [r14 + r9]                         ; pointer na następną liczbę
 
-first_segments:                                 ; zaczynamy od pierwszego, najmniej znaczącego segmentu liczby
+.first_segments:                                 ; zaczynamy od pierwszego, najmniej znaczącego segmentu liczby
     mov rax, qword [r15 + rcx]
     sub qword [r14 + rcx], rax
     pushf
-other_segments:                                 ; jeżeli liczba ma więcej niż 1 segment, dokonujemy tego na pozostałych
+.other_segments:                                 ; jeżeli liczba ma więcej niż 1 segment, dokonujemy tego na pozostałych
     add rcx, 8
     cmp rcx, r9
-    je next_segment_sub
+    je .next_segment_sub
     mov rax, qword [r15 + rcx]
     popf
     sbb qword [r14 + rcx], rax                  ; ważną rzeczą jest tuaj przeniesienie bajtu z poprzedniego segmentu, jeżeli wystąpiło przepełnienie
     pushf
-    jmp other_segments                          ; wykonujemy to dla pozostałych segmentów pojedynczej liczby
-next_segment_sub:
+    jmp .other_segments                          ; wykonujemy to dla pozostałych segmentów pojedynczej liczby
+.next_segment_sub:
     popf
     inc r13
     cmp r13, actual_count
-    jne next_bignum_sub
+    jne .next_bignum_sub
     jmp main_loop                               ; jeżeli skończymy operacje na każdej parze liczb, powtarzamy porówannie tablicy z zerami
 
-next_bignum_sub:
+.next_bignum_sub:
     add r14, r9
     add r15, r9
     xor rcx, rcx
-    jmp first_segments                          ; powtarzamy odejmowanie dla każdej pary sąsiednich liczb
+    jmp .first_segments                          ; powtarzamy odejmowanie dla każdej pary sąsiednich liczb
 
 ;substract:
 ;    mov rax, actual_count
@@ -169,6 +173,6 @@ finish:                                         ; zapewnienie abi oraz zwróceni
     pop r14
     pop r13
     pop r12
-    pop rbp
-    pop rbx
     ret
+
+syscall
