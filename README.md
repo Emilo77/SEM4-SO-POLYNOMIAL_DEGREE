@@ -19,7 +19,7 @@ Rozwiązanie będzie kompilowane poleceniem:
 
 nasm -f elf64 -w+all -w+error -o polynomial_degree.o polynomial_degree.asm
 
-Przykład użycia
+# Przykład użycia
 
 Przykład użycia znajduje się w pliku polynomial_degree_example.c. Można go skompilować i skonsolidować z rozwiązaniem poleceniami:
 
@@ -30,11 +30,13 @@ gcc -o polynomial_degree_example polynomial_degree_example.o polynomial_degree.o
 # Oddawanie rozwiązania
 
 Jako rozwiązanie należy wstawić w Moodle plik o nazwie polynomial_degree.asm.
-Ocenianie
+
+# Ocenianie
 
 Oceniane będą poprawność i szybkość działania programu, zajętość pamięci (rozmiary poszczególnych sekcji), styl kodowania, komentarze. Wystawienie oceny może też być uzależnione od osobistego wyjaśnienia szczegółów działania programu prowadzącemu zajęcia.
 
 Tradycyjny styl programowania w asemblerze polega na rozpoczynaniu etykiet od pierwszej kolumny, mnemoników od dziewiątej kolumny, a listy argumentów od siedemnastej kolumny. Inny akceptowalny styl prezentowany jest w przykładach pokazywanych na zajęciach. Kod powinien być dobrze skomentowany, co oznacza między innymi, że każda procedura powinna być opatrzona informacją, co robi, jak przekazywane są do niej parametry, jak przekazywany jest jej wynik, jakie rejestry modyfikuje. To samo dotyczy makr. Komentarza wymagają także wszystkie kluczowe lub nietrywialne linie wewnątrz procedur lub makr. W przypadku asemblera nie jest przesadą komentowanie prawie każdej linii kodu, ale należy jak ognia unikać komentarzy typu „zwiększenie wartości rejestru rax o 1”.
-Pytania
+
+# Pytania
 
 Pytania dotyczące zadania można zadawać w przeznaczonym do tego wątku na Moodle.
